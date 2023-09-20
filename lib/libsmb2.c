@@ -865,6 +865,7 @@ negotiate_cb(struct smb2_context *smb2, int status,
         smb2->max_transact_size = rep->max_transact_size;
         smb2->max_read_size     = rep->max_read_size;
         smb2->max_write_size    = rep->max_write_size;
+        smb2->system_time       = rep->system_time;
         smb2->dialect           = rep->dialect_revision;
         smb2->cypher            = rep->cypher;
 
@@ -2632,6 +2633,12 @@ uint32_t
 smb2_get_max_write_size(struct smb2_context *smb2)
 {
         return smb2->max_write_size;
+}
+
+uint64_t
+smb2_get_system_time(struct smb2_context *smb2)
+{
+        return smb2->system_time;
 }
 
 smb2_file_id *
