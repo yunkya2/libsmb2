@@ -34,7 +34,6 @@
 #ifdef PICO_PLATFORM
 
 #define NEED_BE64TOH
-#define NEED_POLL
 
 #include "lwip/def.h"
 #include <unistd.h>
