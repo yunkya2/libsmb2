@@ -25,6 +25,9 @@
 
 #elif defined(PICO_PLATFORM)
 
+#define LWIP_PLATFORM_ASSERT(x) panic(x)
+#define LWIP_RAND() get_rand_32()
+
 #   include <machine/endian.h>
 #   include "lwip/def.h"
 
