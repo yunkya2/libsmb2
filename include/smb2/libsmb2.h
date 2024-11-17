@@ -786,6 +786,11 @@ struct smb2_write_cb_data {
 };
 
 /*
+ * Get System Time
+ */
+uint64_t smb2_get_system_time(struct smb2_context *smb2);
+
+/*
  * PREAD
  */
 /*

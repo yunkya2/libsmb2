@@ -241,6 +241,7 @@ struct smb2_context {
         uint32_t max_transact_size;
         uint32_t max_read_size;
         uint32_t max_write_size;
+        uint64_t system_time;
         uint16_t dialect;
 
         char error_string[MAX_ERROR_SIZE];
