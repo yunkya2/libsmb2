@@ -288,6 +288,9 @@ int getpid();
 
 #ifdef PICO_PLATFORM
 
+#define LWIP_PLATFORM_ASSERT(x) panic(x)
+#define LWIP_RAND() get_rand_32()
+
 #include "lwip/netdb.h"
 #include "lwip/sockets.h"
 
