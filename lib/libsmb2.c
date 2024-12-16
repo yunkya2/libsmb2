@@ -3810,9 +3810,6 @@ int smb2_serve_port(struct smb2_server *server, const int max_connections, smb2_
         if (!server->guid[0]) {
                 memcpy(server->guid, "libsmb2-srvrguid", 16);
         }
-        if (!server->hostname[0]) {
-                gethostname(server->hostname, sizeof(server->hostname));
-        }
         if (!server->domain[0]) {
                 strncpy(server->domain, default_domain,
                                MIN(sizeof(server->domain),strlen(default_domain) + 1));

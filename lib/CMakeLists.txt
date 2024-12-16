@@ -243,7 +243,7 @@ install(TARGETS smb2man.irx EXPORT smb2man.irx
                             ARCHIVE DESTINATION smb2man.irx
                             LIBRARY DESTINATION smb2man.irx)
 else()
-install(TARGETS smb2 EXPORT smb2
+install(TARGETS libsmb2 EXPORT libsmb2
                      RUNTIME DESTINATION bin
                      ARCHIVE DESTINATION lib${LIB_SUFFIX}
                      LIBRARY DESTINATION lib${LIB_SUFFIX})
