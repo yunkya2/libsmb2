@@ -1165,6 +1165,30 @@ int smb2_readlink_async(struct smb2_context *smb2, const char *path,
 int smb2_readlink(struct smb2_context *smb2, const char *path, char *buf, uint32_t bufsiz);
 
 /*
+ * FUTIMENS
+ */
+/*
+ * Async futimes()
+ *
+ * Returns
+ *  0     : The operation was initiated. Result of the operation will be
+ *          reported through the callback function.
+ * -errno : There was an error. The callback function will not be invoked.
+ *
+ * When the callback is invoked, status indicates the result:
+ *      0 : Success. Command_data is NULL.
+ * -errno : An error occurred.
+ */
+int smb2_futimes_async(struct smb2_context *smb2, struct smb2fh *fh,
+                       struct smb2_timeval tv[2],
+                       smb2_command_cb cb, void *cb_data);
+/*
+ * Sync futimes()
+ */
+int smb2_futimes(struct smb2_context *smb2, struct smb2fh *fh,
+                 struct smb2_timeval tv[2]);
+
+/*
  * Async echo()
  *
  * Returns

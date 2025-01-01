@@ -831,6 +831,37 @@ int smb2_readlink(struct smb2_context *smb2, const char *path,
 	return rc;
 }
 
+int smb2_futimes(struct smb2_context *smb2, struct smb2fh *fh,
+                 struct smb2_timeval tv[2])
+{
+        struct sync_cb_data *cb_data;
+        int rc = 0;
+
+        cb_data = calloc(1, sizeof(struct sync_cb_data));
+        if (cb_data == NULL) {
+                smb2_set_error(smb2, "Failed to allocate sync_cb_data");
+                return -ENOMEM;
+        }
+
+	rc = smb2_futimes_async(smb2, fh, tv,
+                                generic_status_cb, cb_data);
+        if (rc < 0) {
+                goto out;
+	}
+
+	rc = wait_for_reply(smb2, cb_data);
+        if (rc < 0) {
+                cb_data->status = SMB2_STATUS_CANCELLED;
+                return rc;
+	}
+
+        rc = cb_data->status;
+ out:
+        free(cb_data);
+
+	return rc;
+}
+
 static void echo_cb(struct smb2_context *smb2, int status,
                     void *command_data, void *private_data)
 {

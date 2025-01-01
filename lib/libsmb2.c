@@ -2562,6 +2562,116 @@ smb2_readlink_async(struct smb2_context *smb2, const char *path,
         return 0;
 }
 
+struct utimes_cb_data {
+        smb2_command_cb cb;
+        void *cb_data;
+        struct smb2fh *fh;
+        struct smb2_timeval *tv;
+};
+
+static void
+futimes_cb_2(struct smb2_context *smb2, int status,
+             void *command_data, void *private_data)
+{
+        struct utimes_cb_data *utimes_data = private_data;
+
+        utimes_data->cb(smb2, -nterror_to_errno(status), 
+                        NULL, utimes_data->cb_data);
+        free(utimes_data);
+}
+
+static void
+futimes_cb_1(struct smb2_context *smb2, int status,
+             void *command_data, void *private_data)
+{
+        struct utimes_cb_data *utimes_data = private_data;
+        struct smb2_query_info_reply *rep = command_data;
+        struct smb2_file_basic_info *fs = rep->output_buffer;
+        struct smb2_timeval *tv = utimes_data->tv;
+        struct smb2_pdu *pdu;
+        struct smb2_set_info_request req;
+
+        if (status != SMB2_STATUS_SUCCESS) {
+                utimes_data->cb(smb2, -nterror_to_errno(status),
+                       NULL, utimes_data->cb_data);
+                free(utimes_data);
+                return;
+        }
+
+        fs->last_access_time.tv_sec = tv[0].tv_sec;
+        fs->last_access_time.tv_usec = tv[0].tv_usec;
+        fs->last_write_time.tv_sec = tv[1].tv_sec;
+        fs->last_write_time.tv_usec = tv[1].tv_usec;
+
+        memset(&req, 0, sizeof(struct smb2_set_info_request));
+        req.info_type = SMB2_0_INFO_FILE;
+        req.file_info_class = SMB2_FILE_BASIC_INFORMATION;
+        req.additional_information = 0;
+        memcpy(req.file_id, utimes_data->fh->file_id, SMB2_FD_SIZE);
+        req.input_data = fs;
+
+        pdu = smb2_cmd_set_info_async(smb2, &req, futimes_cb_2, utimes_data);
+        if (pdu == NULL) {
+                smb2_set_error(smb2, "Failed to create set info command");
+                utimes_data->cb(smb2, -ENOMEM, NULL, utimes_data->cb_data);
+                smb2_free_data(smb2, fs);
+                free(utimes_data);
+                return;
+        }
+
+        smb2_queue_pdu(smb2, pdu);
+        smb2_free_data(smb2, fs);
+}
+
+int
+smb2_futimes_async(struct smb2_context *smb2, struct smb2fh *fh,
+                   struct smb2_timeval tv[2],
+                   smb2_command_cb cb, void *cb_data)
+{
+        struct utimes_cb_data *utimes_data;
+        struct smb2_query_info_request req;
+        struct smb2_pdu *pdu;
+
+        if (smb2 == NULL) {
+                return -EINVAL;
+        }
+        if (fh == NULL) {
+                smb2_set_error(smb2, "File handle was NULL");
+                return -EINVAL;
+        }
+
+        utimes_data = calloc(1, sizeof(struct utimes_cb_data));
+        if (utimes_data == NULL) {
+                smb2_set_error(smb2, "Failed to allocate stat_data");
+                return -ENOMEM;
+        }
+
+        utimes_data->cb = cb;
+        utimes_data->cb_data = cb_data;
+        utimes_data->fh = fh;
+        utimes_data->tv = tv;
+
+        /* QUERY INFO command */
+        memset(&req, 0, sizeof(struct smb2_query_info_request));
+        req.info_type = SMB2_0_INFO_FILE;
+        req.file_info_class = SMB2_FILE_BASIC_INFORMATION;
+        req.output_buffer_length = DEFAULT_OUTPUT_BUFFER_LENGTH;
+        req.additional_information = 0;
+        req.flags = 0;
+        memcpy(req.file_id, fh->file_id, SMB2_FD_SIZE);
+
+        pdu = smb2_cmd_query_info_async(smb2, &req, futimes_cb_1, utimes_data);
+        if (pdu == NULL) {
+                smb2_set_error(smb2, "Failed to create query command");
+                free(utimes_data);
+                return -ENOMEM;
+        }
+
+        smb2_queue_pdu(smb2, pdu);
+
+        return 0;
+}
+
 struct disconnect_data {
         smb2_command_cb cb;
         void *cb_data;
