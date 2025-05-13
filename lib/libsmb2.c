@@ -308,8 +308,13 @@ decode_dirents(struct smb2_context *smb2, struct smb2dir *dir,
                                        "dirent_internal");
                         return -1;
                 }
-                SMB2_LIST_ADD(&dir->entries, ent);
-
+//                SMB2_LIST_ADD(&dir->entries, ent);
+                struct smb2_dirent_internal **tmp = &dir->entries;
+                while (*tmp) {
+                        tmp = &(*tmp)->next;
+                }
+                *tmp = ent;
+                ent->next = NULL;
 
                 tmp_vec.buf = &vec->buf[offset];
                 tmp_vec.len = vec->len - offset;
