@@ -329,7 +329,6 @@ struct smb2dir {
 
         struct smb2_dirent_internal *entries;
         struct smb2_dirent_internal *current_entry;
-        int index;
 };
 
         

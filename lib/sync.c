@@ -211,13 +211,57 @@ struct smb2dir *smb2_opendir(struct smb2_context *smb2, const char *path)
         }
 
 	dir = cb_data->ptr;
-        if (dir) {
-                /* Give ownership of cb_data to dir. It will be freed when dir is freed */
-                dir->free_cb_data = free;
-        } else {
-                free(cb_data);
-        }
+        free(cb_data);
         return dir;
+}
+
+/*
+ * readdir()
+ */
+static void readdir_cb(struct smb2_context *smb2, int status,
+                       void *command_data, void *private_data)
+{
+        struct sync_cb_data *cb_data = private_data;
+
+        if (cb_data->status == SMB2_STATUS_CANCELLED) {
+                return;
+        }
+        if (status) {
+                cb_data->status = status;
+        }
+        cb_data->is_finished = 1;
+        cb_data->ptr = command_data;
+}
+
+struct smb2dirent *smb2_readdir(struct smb2_context *smb2, struct smb2dir *smb2dir)
+{
+        struct sync_cb_data *cb_data;
+
+        cb_data = calloc(1, sizeof(struct sync_cb_data));
+        if (cb_data == NULL) {
+                 smb2_set_error(smb2, "Failed to allocate sync_cb_data");
+                 return NULL;
+        }
+
+        if (smb2_readdir_async(smb2, smb2dir,
+                               readdir_cb, cb_data) != 0) {
+                smb2_set_error(smb2, "smb2_readdir_async failed");
+                free(cb_data);
+                return NULL;
+        }
+
+        if (wait_for_reply(smb2, cb_data) < 0) {
+                cb_data->status = SMB2_STATUS_CANCELLED;
+                free(cb_data);
+                return NULL;
+        }
+
+        free(cb_data);
+        if (smb2dir->current_entry == NULL) {
+                return NULL;
+        } else {
+                return &smb2dir->current_entry->dirent;
+        }
 }
 
 /*
