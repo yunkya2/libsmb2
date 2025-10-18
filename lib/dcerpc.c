@@ -998,6 +998,7 @@ dcerpc_encode_utf16(struct dcerpc_context *ctx, struct dcerpc_pdu *pdu,
 
         /* Data part */
         for (i = 0; i < s->utf16->len; i++) {
+                s->utf16->val[i] = le16toh(s->utf16->val[i]);
                 if (dcerpc_uint16_coder(ctx, pdu, iov, offset, &s->utf16->val[i])) {
                         return -1;
                 }
