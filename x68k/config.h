@@ -1,5 +1,8 @@
 /* config.h.cmake */
 
+/* Whether or not TCP sockets should be allowed to linger after closure */
+#define CONFIGURE_OPTION_TCP_LINGER 1
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H "1"
 
@@ -28,7 +31,7 @@
 #define HAVE_NETINET_IN_H "1"
 
 /* Define to 1 if you have the <netinet/tcp.h> header file. */
-#define HAVE_NETINET_TCP_H "1"
+/* #undef HAVE_NETINET_TCP_H */
 
 /* Define to 1 if you have the <poll.h> header file. */
 #define HAVE_POLL_H "1"
@@ -40,7 +43,7 @@
 #define HAVE_SOCKADDR_STORAGE "1"
 
 /* Whether we have linger */
-#define HAVE_LINGER "1"
+/* #undef HAVE_LINGER */
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H "1"
@@ -58,10 +61,10 @@
 #define HAVE_STRING_H "1"
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
-#define HAVE_SYS_IOCTL_H "1"
+/* #undef HAVE_SYS_IOCTL_H */
 
 /* Define to 1 if you have the <sys/poll.h> header file. */
-#define HAVE_SYS_POLL_H "1"
+/* #undef HAVE_SYS_POLL_H */
 
 /* Define to 1 if you have the <sys/socket.h> header file. */
 #define HAVE_SYS_SOCKET_H "1"
@@ -73,7 +76,7 @@
 #define HAVE_SYS_TYPES_H "1"
 
 /* Define to 1 if you have the <sys/uio.h> header file. */
-#define HAVE_SYS_UIO_H "1"
+/* #undef HAVE_SYS_UIO_H */
 
 /* Define to 1 if you have the <sys/_iovec.h> header file. */
 /* #undef HAVE_SYS__IOVEC_H */
