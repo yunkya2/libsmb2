@@ -14,7 +14,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define _GNU_SOURCE
 
 #include <inttypes.h>
-#if !defined(__amigaos4__) && !defined(__AMIGA__) && !defined(__AROS__)
+#if !defined(__amigaos4__) && !defined(__AMIGA__) && !defined(__AROS__) && !defined(__human68k__)
 #include <poll.h>
 #endif
 #include <stdint.h>
@@ -28,7 +28,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "libsmb2.h"
 #include "libsmb2-raw.h"
 
-#if defined(__amigaos4__) || defined(__AMIGA__) || defined(__AROS__)
+#if defined(__amigaos4__) || defined(__AMIGA__) || defined(__AROS__) || defined(__human68k__)
 struct pollfd {
         int fd;
         short events;
@@ -65,13 +65,13 @@ void se_cb(struct smb2_context *smb2, int status,
         /* We always only use Level1 for netshare enum */
         switch (level) {
         case SHARE_INFO_0:
-                printf("Number of shares:%d\n", rep->ses.ShareInfo.Level0.EntriesRead);
+                printf("Number of shares:%"PRIu32"\n", (uint32_t)rep->ses.ShareInfo.Level0.EntriesRead);
                 for (i = 0; i < rep->ses.ShareInfo.Level0.EntriesRead; i++) {
                         printf("%-20s\n", rep->ses.ShareInfo.Level0.Buffer->share_info_0[i].netname.utf8);
                 }
                 break;
         case SHARE_INFO_1:
-                printf("Number of shares:%d\n", rep->ses.ShareInfo.Level1.EntriesRead);
+                printf("Number of shares:%"PRIu32"\n", (uint32_t)rep->ses.ShareInfo.Level1.EntriesRead);
                 for (i = 0; i < rep->ses.ShareInfo.Level1.EntriesRead; i++) {
                         printf("%-20s %-20s", rep->ses.ShareInfo.Level1.Buffer->share_info_1[i].netname.utf8,
                                rep->ses.ShareInfo.Level1.Buffer->share_info_1[i].remark.utf8);

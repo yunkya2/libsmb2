@@ -53,9 +53,9 @@ void print_sid(RPC_SID *sid)
                 ia <<= 8;
                 ia |= sid->IdentifierAuthority[i];
         }
-        printf("%ld", ia);
+        printf("%" PRIu32, (uint32_t)ia);
         for (i = 0; i < sid->SubAuthorityCount; i++) {
-                printf("-%d", sid->SubAuthority[i]);
+                printf("-%" PRIu32, sid->SubAuthority[i]);
         }
 }
 
@@ -89,17 +89,17 @@ void ls_cb(struct dcerpc_context *dce, int status,
         }
 
         printf("ReferencedDomains\n");
-        printf("   Entries:%d\n", rep->ReferencedDomains.Entries);
-        printf("   MaxEntries:%d\n", rep->ReferencedDomains.MaxEntries);
+        printf("   Entries:%" PRIu32 "\n", rep->ReferencedDomains.Entries);
+        printf("   MaxEntries:%" PRIu32 "\n", rep->ReferencedDomains.MaxEntries);
         for(i = 0; i < rep->ReferencedDomains.Entries; i++) {
                 printf("   Name:%s SID:", rep->ReferencedDomains.Domains[i].Name);
                 print_sid(&rep->ReferencedDomains.Domains[i].Sid);
                 printf("\n");
         }
         printf("TranslatedNames\n");
-        printf("   Entries:%d\n", rep->TranslatedNames.Entries);
+        printf("   Entries:%" PRIu32 "\n", rep->TranslatedNames.Entries);
         for(i = 0; i < rep->TranslatedNames.Entries; i++) {
-                printf("   Name:%s DomainIndex:%d\n", rep->TranslatedNames.Names[i].Name, rep->TranslatedNames.Names[i].DomainIndex);
+                printf("   Name:%s DomainIndex:%" PRIu32 "\n", rep->TranslatedNames.Names[i].Name, rep->TranslatedNames.Names[i].DomainIndex);
         }
 
         memcpy(&cl_req.PolicyHandle, &PolicyHandle,

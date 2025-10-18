@@ -83,8 +83,8 @@ int main(int argc, char *argv[])
                 printf("Type:unknown\n");
                 break;
         }
-        printf("Size:%"PRIu64"\n", st.smb2_size);
-        printf("Inode:0x%"PRIx64"\n", st.smb2_ino);
+        printf("Size:%"PRIu32"\n", (uint32_t)st.smb2_size);
+        printf("Inode:0x%"PRIx32"\n", (uint32_t)st.smb2_ino);
         printf("Links:%"PRIu32"\n", st.smb2_nlink);
         t = (time_t)st.smb2_atime;
 	printf("Atime:%s", asctime(localtime(&t)));

@@ -66,7 +66,7 @@ void qd_3_cb(struct smb2_context *smb2, int status,
                 printf("ERROR: restarting the scan using SMB2_RESTART_SCAN broken\n");
                 exit(10);
         }
-        printf("Index of first entry after restarting the scan at the second index: 0x%08x\n", fs.file_index);
+        printf("Index of first entry after restarting the scan at the second index: 0x%08" PRIx32 "\n", fs.file_index);
         printf("Name of first entry after restarting the scan at the second index %s\n", fs.name);
         if (strcmp(fs.name, data->name_2)) {
                  printf("ERROR: restarting the scan using SMB2_INDEX_SPECIFIED did not return the expected second entry.\n");
@@ -102,7 +102,7 @@ void qd_2_cb(struct smb2_context *smb2, int status,
                 printf("ERROR: restarting the scan using SMB2_RESTART_SCAN broken\n");
                 exit(10);
         }
-        printf("Index of first entry after restarting the scan: 0x%08x\n", fs.file_index);
+        printf("Index of first entry after restarting the scan: 0x%08" PRIx32 "\n", fs.file_index);
         printf("Name of first entry after restarting the scan %s\n", fs.name);
         if (strcmp(fs.name, data->name_1)) {
                  printf("ERROR: restarting the scan using SMB2_RESTART_SCAN did not return the name of the first entry.\n");
@@ -156,7 +156,7 @@ void qd_1_cb(struct smb2_context *smb2, int status,
         data->name_1 = strdup(fs.name);
         data->index_1 = fs.file_index;
         printf("First file in directory: %s\n", data->name_1);
-        printf("Index of first file in directory: 0x%08x\n", fs.file_index);
+        printf("Index of first file in directory: 0x%08" PRIx32 "\n", fs.file_index);
 
         offset += fs.next_entry_offset;
         tmp_vec.buf = &vec.buf[offset];
@@ -168,7 +168,7 @@ void qd_1_cb(struct smb2_context *smb2, int status,
         data->name_2 = strdup(fs.name);
         data->index_2 = fs.file_index;
         printf("Second file in directory: %s\n", data->name_2);
-        printf("Index of second file in directory: 0x%08x\n", fs.file_index);
+        printf("Index of second file in directory: 0x%08" PRIx32 "\n", fs.file_index);
         if (data->index_1 == data->index_2) {
                 printf("ERROR: broken server returns same file_index for first two entries in the directory\n");
                 printf("ERROR: This server does not support SMB2_INDEX_SPECIFIED queries\n");

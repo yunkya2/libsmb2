@@ -323,16 +323,16 @@ int main(int argc, char *argv[])
         t = fs->basic.change_time.tv_sec;
         printf("Change Time:      %s", asctime(localtime(&t)));
 
-        printf("Allocation Size: %" PRIu64 "\n", fs->standard.allocation_size);
-        printf("End Of File:     %" PRIu64 "\n", fs->standard.end_of_file);
-        printf("Number Of Links: %d\n", fs->standard.number_of_links);
+        printf("Allocation Size: %" PRIu32 "\n", (uint32_t)fs->standard.allocation_size);
+        printf("End Of File:     %" PRIu32 "\n", (uint32_t)fs->standard.end_of_file);
+        printf("Number Of Links: %" PRIu32 "\n", fs->standard.number_of_links);
         printf("Delete Pending:  %s\n", fs->standard.delete_pending ?
                "YES" : "NO");
         printf("Directory:       %s\n", fs->standard.directory ?
                "YES" : "NO");
 
-        printf("Index Number: 0x%016" PRIx64 "\n", fs->index_number);
-        printf("EA Size : %d\n", fs->ea_size);
+        printf("Index Number: 0x%016" PRIx32 "\n", (uint32_t)fs->index_number);
+        printf("EA Size : %" PRIu32 "\n", fs->ea_size);
 
         printf("Access Flags: ");
         if (fs->standard.directory) {
@@ -435,7 +435,7 @@ int main(int argc, char *argv[])
         }
         printf("\n");
 
-        printf("Alignment Requirement: %d\n", fs->alignment_requirement);
+        printf("Alignment Requirement: %" PRIu32 "\n", fs->alignment_requirement);
         printf("Name: %s\n", fs->name);
 
         smb2_free_data(smb2, fs);

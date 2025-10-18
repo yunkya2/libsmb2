@@ -231,7 +231,7 @@ print_sid(struct smb2_sid *sid)
                 printf("-0x%012" PRIx64, ia);
         }
         for (i = 0; i < sid->sub_auth_count; i++) {
-                printf("-%u", sid->sub_auth[i]);
+                printf("-%" PRIu32, sid->sub_auth[i]);
         }
 }
 
@@ -246,7 +246,7 @@ print_ace(struct smb2_ace *ace)
         case SMB2_ACCESS_DENIED_ACE_TYPE:
         case SMB2_SYSTEM_AUDIT_ACE_TYPE:
         case SMB2_SYSTEM_MANDATORY_LABEL_ACE_TYPE:
-                printf("Mask:0x%08x ", ace->mask);
+                printf("Mask:0x%08" PRIx32 " ", ace->mask);
                 print_sid(ace->sid);
                 break;
         default:
