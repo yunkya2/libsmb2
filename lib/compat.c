@@ -255,6 +255,27 @@ socklen_t *optlen)
 
 #endif /* __SWITCH__ */
 
+#ifdef __human68k__
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/select.h>
+
+#define login_num ENXIO
+
+int gethostname(char *name, size_t len)
+{
+        strncpy(name, "X68000", len);
+        return 0;
+}
+
+int select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
+{
+        return 0;
+}
+#endif
+
 #ifdef NEED_GETADDRINFO
 int smb2_getaddrinfo(const char *node, const char*service,
                 const struct addrinfo *hints,
@@ -413,6 +434,7 @@ ssize_t writev(t_socket fd, const struct iovec* vector, int count)
 #endif
 
 #ifdef NEED_READV
+#ifndef __human68k__
 ssize_t readv(t_socket fd, const struct iovec* vector, int count)
 {
         /* Find the total number of bytes to be read.  */
@@ -457,6 +479,37 @@ ssize_t readv(t_socket fd, const struct iovec* vector, int count)
         free(buffer);
         return bytes_read;
 }
+#else   /* __human68k__ */
+static char readv_buf[4096];
+static char *readv_ptr = readv_buf;
+static size_t readv_len = 0;
+
+ssize_t readv(t_socket fd, const struct iovec* vector, int count)
+{
+        int i;
+        ssize_t bytes_read;
+        ssize_t total_bytes_read = 0;
+        for (i = 0; i < count; ++i)
+        {
+                if (readv_len == 0) {
+                        bytes_read = read((int)fd, readv_buf, sizeof(readv_buf));
+                        if (bytes_read < 0) {
+                                return -1;
+                        }
+                        readv_ptr = readv_buf;
+                        readv_len = bytes_read;
+                }
+
+                /* Copy the data from BUFFER into the memory specified by VECTOR.  */
+                size_t copy = (vector[i].iov_len < readv_len) ? vector[i].iov_len : readv_len;
+                memcpy((void *)vector[i].iov_base, (void *)readv_ptr, copy);	
+                total_bytes_read += copy;
+                readv_ptr += copy;
+                readv_len -= copy;
+        }
+        return total_bytes_read;
+}
+#endif  /* __human68k__ */
 #endif
 
 #ifdef NEED_POLL

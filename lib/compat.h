@@ -769,6 +769,22 @@ int getlogin_r(char *buf, size_t size);
 #endif
 #endif /* __ANDROID__ */
 
+#ifdef __human68k__
+#include <stddef.h>
+#include <sys/types.h>
+
+struct iovec
+{
+  unsigned long iov_len; /* from WSABUF */
+  void *iov_base;
+};
+
+int getlogin_r(char *buf, size_t size);
+
+ssize_t writev(t_socket fd, const struct iovec* vector, int count);
+ssize_t readv(t_socket fd, const struct iovec* vector, int count);
+#endif /* __human68k__ */
+
 #ifndef O_RDONLY
 #define O_RDONLY	00000000
 #endif

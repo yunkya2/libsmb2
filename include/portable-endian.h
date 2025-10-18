@@ -349,6 +349,10 @@
 
 #endif
 
+#elif defined(__human68k__)
+
+#include <sys/endian.h>
+
 #elif defined(__GNUC__) || defined(__clang__)
 
 #ifdef __vita__

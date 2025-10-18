@@ -808,6 +808,7 @@ smb2_read_from_buf(struct smb2_context *smb2)
         return smb2_read_data(smb2, smb2_readv_from_buf, 1);
 }
 
+#ifndef __human68k__
 static void
 smb2_close_connecting_fd(struct smb2_context *smb2, t_socket fd)
 {
@@ -825,6 +826,7 @@ smb2_close_connecting_fd(struct smb2_context *smb2, t_socket fd)
                 }
         }
 }
+#endif
 
 int
 smb2_service_fd(struct smb2_context *smb2, t_socket fd, int revents)
@@ -858,6 +860,7 @@ smb2_service_fd(struct smb2_context *smb2, t_socket fd, int revents)
                 }
         }
 
+#ifndef __human68k__
         if (revents & POLLERR) {
                 int err = 0;
                 socklen_t err_size = sizeof(err);
@@ -896,8 +899,10 @@ smb2_service_fd(struct smb2_context *smb2, t_socket fd, int revents)
                 ret = -1;
                 goto out;
         }
+#endif
 
         if (!SMB2_VALID_SOCKET(smb2->fd) && revents & POLLOUT) {
+#ifndef __human68k__
                 int err = 0;
                 socklen_t err_size = sizeof(err);
 
@@ -928,6 +933,7 @@ smb2_service_fd(struct smb2_context *smb2, t_socket fd, int revents)
                         ret = -1;
                         goto out;
                 }
+#endif
                 smb2->fd = fd;
 
                 smb2_close_connecting_fds(smb2);
@@ -971,6 +977,7 @@ smb2_service(struct smb2_context *smb2, int revents)
         }
 }
 
+#ifndef __human68k__
 static void
 set_nonblocking(t_socket fd)
 {
@@ -1004,6 +1011,7 @@ set_tcp_sockopt(t_socket sockfd, int optname, int value)
 
         return setsockopt(sockfd, level, optname, (char *)&value, sizeof(value));
 }
+#endif
 
 static int
 connect_async_ai(struct smb2_context *smb2, const struct addrinfo *ai, int *fd_out)
@@ -1070,8 +1078,10 @@ connect_async_ai(struct smb2_context *smb2, const struct addrinfo *ai, int *fd_o
         }
 #endif
 
+#ifndef __human68k__
         set_nonblocking(fd);
         set_tcp_sockopt(fd, TCP_NODELAY, 1);
+#endif
 #if 0 == CONFIGURE_OPTION_TCP_LINGER
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const void*)&yes, sizeof yes);
         setsockopt(fd, SOL_SOCKET, SO_LINGER, (const void*)&lin, sizeof lin);
@@ -1221,8 +1231,10 @@ smb2_connect_async(struct smb2_context *smb2, const char *server,
                                 "Can not resolve into IPv4/v6.", server);
                 }
                 switch (err) {
+#ifndef __human68k__
                     case EAI_AGAIN:
                         return -EAGAIN;
+#endif
                     case EAI_NONAME:
 #ifdef EAI_NODATA
 #if EAI_NODATA != EAI_NONAME /* Equal in MSVC */
@@ -1289,8 +1301,10 @@ smb2_bind_and_listen(const uint16_t port, const int max_connections, int *out_fd
                 return -EIO;
         }
 
+#ifndef __human68k__
         set_nonblocking(fd);
         set_tcp_sockopt(fd, TCP_NODELAY, 1);
+#endif
 
         serv_addr.sin_port = htons(port);
         serv_addr.sin_family = AF_INET;
@@ -1342,8 +1356,10 @@ int smb2_accept_connection_async(const int fd, const int to_msec, smb2_accepted_
                 clientfd = accept(fd, (struct sockaddr *)&client_addr, &socklen);
 
                 if (clientfd >= 0) {
+#ifndef __human68k__
                         set_nonblocking(clientfd);
                         set_tcp_sockopt(clientfd, TCP_NODELAY, 1);
+#endif
 #if 0 == CONFIGURE_OPTION_TCP_LINGER
                         setsockopt(clientfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&yes, sizeof yes);
                         setsockopt(clientfd, SOL_SOCKET, SO_LINGER, (const void*)&lin, sizeof lin);
