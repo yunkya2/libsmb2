@@ -38,6 +38,7 @@ LIBS = -lsocket
 INC += -I. -I../include -I../include/smb2
 DEFS += -DHAVE_CONFIG_H -D_U_="__attribute__((unused))"
 DEFS += -DNEED_GETLOGIN_R -DNEED_WRITEV -DNEED_READV
+DEFS += -DCLIENT_ONLY
 
 SAMPLES_ORG = \
 	smb2-cat-async.c \
@@ -55,8 +56,7 @@ SAMPLES_ORG = \
 	smb2-share-info.c \
 	smb2-stat-sync.c \
 	smb2-truncate-sync.c \
-	smb2-CMD-FIND.c \
-	smb2-server-sync.c \
+	smb2-CMD-FIND.c
 
 SAMPLES_SRC = $(subst -,,$(SAMPLES_ORG))
 

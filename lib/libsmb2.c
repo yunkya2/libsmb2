@@ -2914,6 +2914,7 @@ smb2_oplock_break_notify(struct smb2_context *smb2, int status, void *command_da
         }
 }
 
+#ifndef CLIENT_ONLY
 /*************************** server handlers *************************************************************/
 static void
 smb2_logoff_request_cb(struct smb2_server *server, struct smb2_context *smb2, void *command_data, void *cb_data)
@@ -4077,4 +4078,4 @@ int smb2_serve_port(struct smb2_server *server, const int max_connections, smb2_
         }
         return err;
 }
-
+#endif /* CLIENT_ONLY */

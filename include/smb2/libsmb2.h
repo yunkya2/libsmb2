@@ -1271,6 +1271,7 @@ struct smb2_utf16 *smb2_utf8_to_utf16(const char *utf8);
  */
 const char *smb2_utf16_to_utf8(const uint16_t *str, size_t len);
 
+#ifndef CLIENT_ONLY
 /************* Server-side API **********************************************/
 struct smb2_server;
 
@@ -1367,6 +1368,7 @@ int smb2_serve_port_async(const int fd, const int to_msecs, struct smb2_context 
  * -errno : There was an error causing server loop to exit
  */
 int smb2_serve_port(struct smb2_server *server, const int max_connections, smb2_client_connection cb, void *cb_data);
+#endif /* CLIENT_ONLY */
 
 /*
  * Some symbols have moved over to a different header file to allow better
