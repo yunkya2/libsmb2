@@ -32,7 +32,7 @@
 /* #undef HAVE_LIBSOCKET */
 
 /* Whether we have linger */
-/* #undef HAVE_LINGER */
+#define HAVE_LINGER 1
 
 /* Define to 1 if you have the <netdb.h> header file. */
 /* #undef HAVE_NETDB_H */

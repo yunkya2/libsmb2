@@ -222,7 +222,11 @@ struct dcerpc_response_pdu {
 #define PFC_MAYBE           0x40
 #define PFC_OBJECT_UUID     0x80
 
+#ifdef PICO_PLATFORM
+#define NSE_BUF_SIZE 16*1024
+#else
 #define NSE_BUF_SIZE 128*1024
+#endif
 
 struct dcerpc_cb_data {
         struct dcerpc_context *dce;

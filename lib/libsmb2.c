@@ -114,6 +114,8 @@
 #define DEFAULT_OUTPUT_BUFFER_LENGTH 512
 #elif defined(__PS2__)
 #define DEFAULT_OUTPUT_BUFFER_LENGTH 4096
+#elif defined(PICO_PLATFORM)
+#define DEFAULT_OUTPUT_BUFFER_LENGTH 4096
 #else
 #define DEFAULT_OUTPUT_BUFFER_LENGTH 0xffff
 #endif
@@ -224,6 +226,7 @@ void smb2_free_all_dirs(struct smb2_context *smb2)
         }
 }
 
+#if 0
 void
 smb2_seekdir(struct smb2_context *smb2, struct smb2dir *dir,
                   long loc)
@@ -259,22 +262,7 @@ smb2_rewinddir(struct smb2_context *smb2,
         dir->current_entry = dir->entries;
         dir->index = 0;
 }
-
-struct smb2dirent *
-smb2_readdir(struct smb2_context *smb2,
-             struct smb2dir *dir)
-{
-        struct smb2dirent *ent;
-        if ((dir == NULL) || (dir->current_entry == NULL)) {
-                return NULL;
-        }
-
-        ent = &dir->current_entry->dirent;
-        dir->current_entry = dir->current_entry->next;
-        dir->index++;
-
-        return ent;
-}
+#endif
 
 void
 smb2_closedir(struct smb2_context *smb2, struct smb2dir *dir)
@@ -308,8 +296,13 @@ decode_dirents(struct smb2_context *smb2, struct smb2dir *dir,
                                        "dirent_internal");
                         return -1;
                 }
-                SMB2_LIST_ADD(&dir->entries, ent);
-
+                /* Add new diretory entry at the tail of the list */
+                struct smb2_dirent_internal **tmp = &dir->entries;
+                while (*tmp) {
+                        tmp = &(*tmp)->next;
+                }
+                *tmp = ent;
+                ent->next = NULL;
 
                 tmp_vec.buf = &vec->buf[offset];
                 tmp_vec.len = vec->len - offset;
@@ -352,12 +345,10 @@ od_close_cb(struct smb2_context *smb2, int status,
         if (status != SMB2_STATUS_SUCCESS) {
                 dir->cb(smb2, -nterror_to_errno(status),
                         NULL, dir->cb_data);
-                free_smb2dir(smb2, dir);
                 return;
         }
 
         dir->current_entry = dir->entries;
-        dir->index = 0;
 
         /* dir will be freed in smb2_closedir() */
         dir->cb(smb2, 0, dir, dir->cb_data);
@@ -372,34 +363,18 @@ query_cb(struct smb2_context *smb2, int status,
 
         if (status == SMB2_STATUS_SUCCESS) {
                 struct smb2_iovec vec _U_;
-                struct smb2_query_directory_request req;
-                struct smb2_pdu *pdu;
 
                 vec.buf = rep->output_buffer;
                 vec.len = rep->output_buffer_length;
 
                 if (decode_dirents(smb2, dir, &vec) < 0) {
                         dir->cb(smb2, -ENOMEM, NULL, dir->cb_data);
-                        free_smb2dir(smb2, dir);
                         return;
                 }
 
-                /* We need to get more data */
-                memset(&req, 0, sizeof(struct smb2_query_directory_request));
-                req.file_information_class = SMB2_FILE_ID_FULL_DIRECTORY_INFORMATION;
-                req.flags = 0;
-                memcpy(req.file_id, dir->file_id, SMB2_FD_SIZE);
-                req.output_buffer_length = DEFAULT_OUTPUT_BUFFER_LENGTH;
-                req.name = "*";
-
-                pdu = smb2_cmd_query_directory_async(smb2, &req, query_cb, dir);
-                if (pdu == NULL) {
-                        dir->cb(smb2, -ENOMEM, NULL, dir->cb_data);
-                        free_smb2dir(smb2, dir);
-                        return;
-                }
-                smb2_queue_pdu(smb2, pdu);
-
+                /* Return the first entry */
+                dir->current_entry = dir->entries;
+                dir->cb(smb2, 0, dir, dir->cb_data);
                 return;
         }
 
@@ -415,7 +390,6 @@ query_cb(struct smb2_context *smb2, int status,
                 pdu = smb2_cmd_close_async(smb2, &req, od_close_cb, dir);
                 if (pdu == NULL) {
                         dir->cb(smb2, -ENOMEM, NULL, dir->cb_data);
-                        free_smb2dir(smb2, dir);
                         return;
                 }
                 smb2_queue_pdu(smb2, pdu);
@@ -427,27 +401,37 @@ query_cb(struct smb2_context *smb2, int status,
                        status, nterror_to_str(status),
                        smb2_get_error(smb2));
         dir->cb(smb2, -nterror_to_errno(status), NULL, dir->cb_data);
-        free_smb2dir(smb2, dir);
 }
 
-static void
-opendir_cb(struct smb2_context *smb2, int status,
-           void *command_data, void *private_data)
+int
+smb2_readdir_async(struct smb2_context *smb2, struct smb2dir *dir,
+                   smb2_command_cb cb, void *cb_data)
 {
-        struct smb2dir *dir = private_data;
-        struct smb2_create_reply *rep = command_data;
-        struct smb2_query_directory_request req;
-        struct smb2_pdu *pdu;
-
-        if (status != SMB2_STATUS_SUCCESS) {
-                smb2_set_nterror(smb2, status, "Opendir failed with (0x%08x) %s.",
-                               status, nterror_to_str(status));
-                dir->cb(smb2, -nterror_to_errno(status), NULL, dir->cb_data);
-                free_smb2dir(smb2, dir);
-                return;
+        if ((smb2 == NULL) || (dir == NULL)) {
+                return -EINVAL;
         }
 
-        memcpy(dir->file_id, rep->file_id, SMB2_FD_SIZE);
+        dir->cb = cb;
+        dir->cb_data = cb_data;
+
+        if (dir->current_entry != NULL) {
+                dir->current_entry = dir->current_entry->next;
+                if (dir->current_entry != NULL) {
+                        dir->cb(smb2, 0, dir, dir->cb_data);
+                        return 0;
+                }
+
+                while (dir->entries) {
+                        struct smb2_dirent_internal *e = dir->entries->next;
+        
+                        free(discard_const(dir->entries->dirent.name));
+                        free(dir->entries);
+                        dir->entries = e;
+                }
+        }
+
+        struct smb2_query_directory_request req;
+        struct smb2_pdu *pdu;
 
         memset(&req, 0, sizeof(struct smb2_query_directory_request));
         req.file_information_class = SMB2_FILE_ID_FULL_DIRECTORY_INFORMATION;
@@ -460,10 +444,31 @@ opendir_cb(struct smb2_context *smb2, int status,
         if (pdu == NULL) {
                 smb2_set_error(smb2, "Failed to create query command.");
                 dir->cb(smb2, -ENOMEM, NULL, dir->cb_data);
+                return -EINVAL;
+        }
+        smb2_queue_pdu(smb2, pdu);
+
+        return 0;
+}
+
+static void
+opendir_cb(struct smb2_context *smb2, int status,
+           void *command_data, void *private_data)
+{
+        struct smb2dir *dir = private_data;
+        struct smb2_create_reply *rep = command_data;
+
+        if (status != SMB2_STATUS_SUCCESS) {
+                smb2_set_nterror(smb2, status, "Opendir failed with (0x%08x) %s.",
+                               status, nterror_to_str(status));
+                dir->cb(smb2, -nterror_to_errno(status), NULL, dir->cb_data);
                 free_smb2dir(smb2, dir);
                 return;
         }
-        smb2_queue_pdu(smb2, pdu);
+        memcpy(dir->file_id, rep->file_id, SMB2_FD_SIZE);
+
+        /* dir will be freed in smb2_closedir() */
+        dir->cb(smb2, 0, dir, dir->cb_data);
 }
 
 int
@@ -884,6 +889,7 @@ negotiate_cb(struct smb2_context *smb2, int status,
         smb2->max_transact_size = rep->max_transact_size;
         smb2->max_read_size     = rep->max_read_size;
         smb2->max_write_size    = rep->max_write_size;
+        smb2->system_time       = rep->system_time;
         smb2->dialect           = rep->dialect_revision;
         smb2->cypher            = rep->cypher;
 
@@ -2576,6 +2582,116 @@ smb2_readlink_async(struct smb2_context *smb2, const char *path,
         return 0;
 }
 
+struct utimes_cb_data {
+        smb2_command_cb cb;
+        void *cb_data;
+        struct smb2fh *fh;
+        struct smb2_timeval *tv;
+};
+
+static void
+futimes_cb_2(struct smb2_context *smb2, int status,
+             void *command_data, void *private_data)
+{
+        struct utimes_cb_data *utimes_data = private_data;
+
+        utimes_data->cb(smb2, -nterror_to_errno(status), 
+                        NULL, utimes_data->cb_data);
+        free(utimes_data);
+}
+
+static void
+futimes_cb_1(struct smb2_context *smb2, int status,
+             void *command_data, void *private_data)
+{
+        struct utimes_cb_data *utimes_data = private_data;
+        struct smb2_query_info_reply *rep = command_data;
+        struct smb2_file_basic_info *fs = rep->output_buffer;
+        struct smb2_timeval *tv = utimes_data->tv;
+        struct smb2_pdu *pdu;
+        struct smb2_set_info_request req;
+
+        if (status != SMB2_STATUS_SUCCESS) {
+                utimes_data->cb(smb2, -nterror_to_errno(status),
+                       NULL, utimes_data->cb_data);
+                free(utimes_data);
+                return;
+        }
+
+        fs->last_access_time.tv_sec = tv[0].tv_sec;
+        fs->last_access_time.tv_usec = tv[0].tv_usec;
+        fs->last_write_time.tv_sec = tv[1].tv_sec;
+        fs->last_write_time.tv_usec = tv[1].tv_usec;
+
+        memset(&req, 0, sizeof(struct smb2_set_info_request));
+        req.info_type = SMB2_0_INFO_FILE;
+        req.file_info_class = SMB2_FILE_BASIC_INFORMATION;
+        req.additional_information = 0;
+        memcpy(req.file_id, utimes_data->fh->file_id, SMB2_FD_SIZE);
+        req.input_data = fs;
+
+        pdu = smb2_cmd_set_info_async(smb2, &req, futimes_cb_2, utimes_data);
+        if (pdu == NULL) {
+                smb2_set_error(smb2, "Failed to create set info command");
+                utimes_data->cb(smb2, -ENOMEM, NULL, utimes_data->cb_data);
+                smb2_free_data(smb2, fs);
+                free(utimes_data);
+                return;
+        }
+
+        smb2_queue_pdu(smb2, pdu);
+        smb2_free_data(smb2, fs);
+}
+
+int
+smb2_futimes_async(struct smb2_context *smb2, struct smb2fh *fh,
+                   struct smb2_timeval tv[2],
+                   smb2_command_cb cb, void *cb_data)
+{
+        struct utimes_cb_data *utimes_data;
+        struct smb2_query_info_request req;
+        struct smb2_pdu *pdu;
+
+        if (smb2 == NULL) {
+                return -EINVAL;
+        }
+        if (fh == NULL) {
+                smb2_set_error(smb2, "File handle was NULL");
+                return -EINVAL;
+        }
+
+        utimes_data = calloc(1, sizeof(struct utimes_cb_data));
+        if (utimes_data == NULL) {
+                smb2_set_error(smb2, "Failed to allocate stat_data");
+                return -ENOMEM;
+        }
+
+        utimes_data->cb = cb;
+        utimes_data->cb_data = cb_data;
+        utimes_data->fh = fh;
+        utimes_data->tv = tv;
+
+        /* QUERY INFO command */
+        memset(&req, 0, sizeof(struct smb2_query_info_request));
+        req.info_type = SMB2_0_INFO_FILE;
+        req.file_info_class = SMB2_FILE_BASIC_INFORMATION;
+        req.output_buffer_length = DEFAULT_OUTPUT_BUFFER_LENGTH;
+        req.additional_information = 0;
+        req.flags = 0;
+        memcpy(req.file_id, fh->file_id, SMB2_FD_SIZE);
+
+        pdu = smb2_cmd_query_info_async(smb2, &req, futimes_cb_1, utimes_data);
+        if (pdu == NULL) {
+                smb2_set_error(smb2, "Failed to create query command");
+                free(utimes_data);
+                return -ENOMEM;
+        }
+
+        smb2_queue_pdu(smb2, pdu);
+
+        return 0;
+}
+
 struct disconnect_data {
         smb2_command_cb cb;
         void *cb_data;
@@ -2709,6 +2825,12 @@ uint32_t
 smb2_get_max_write_size(struct smb2_context *smb2)
 {
         return smb2->max_write_size;
+}
+
+uint64_t
+smb2_get_system_time(struct smb2_context *smb2)
+{
+        return smb2->system_time;
 }
 
 smb2_file_id *
@@ -3817,9 +3939,6 @@ int smb2_serve_port(struct smb2_server *server, const int max_connections, smb2_
         }
         if (!server->guid[0]) {
                 memcpy(server->guid, "libsmb2-srvrguid", 16);
-        }
-        if (!server->hostname[0]) {
-                gethostname(server->hostname, sizeof(server->hostname));
         }
         if (!server->domain[0]) {
                 strncpy(server->domain, default_domain,

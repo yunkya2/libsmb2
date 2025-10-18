@@ -13,6 +13,9 @@
 
 #if defined(__PS2__) || defined(PICO_PLATFORM)
 
+#define LWIP_PLATFORM_ASSERT(x) panic(x)
+#define LWIP_RAND() get_rand_32()
+
 #ifndef _LITTLE_ENDIAN
 #define _LITTLE_ENDIAN LITTLE_ENDIAN
 #endif

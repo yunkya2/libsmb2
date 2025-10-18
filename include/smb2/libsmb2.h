@@ -664,7 +664,27 @@ void smb2_closedir(struct smb2_context *smb2, struct smb2dir *smb2dir);
  * readdir()
  */
 /*
- * smb2_readdir() never blocks, thus no async version is needed.
+ * Async readdir()
+ *
+ * Returns
+ *  0 : The operation was initiated. Result of the operation will be reported
+ * through the callback function.
+ * <0 : There was an error. The callback function will not be invoked.
+ *
+ * When the callback is invoked, status indicates the result:
+ *      0 : Success.
+ *          Command_data is struct smb2dir.
+ *          This structure is freed using smb2_closedir().
+ * -errno : An error occurred.
+ *          Command_data is NULL.
+ */
+int smb2_readdir_async(struct smb2_context *smb2, struct smb2dir *smb2dir,
+                       smb2_command_cb cb, void *cb_data);
+
+/*
+ * Sync readdir()
+ *
+ * Returns NULL on failure.
  */
 struct smb2dirent *smb2_readdir(struct smb2_context *smb2,
                                 struct smb2dir *smb2dir);
@@ -806,6 +826,11 @@ struct smb2_write_cb_data {
         uint32_t count;
         uint64_t offset;
 };
+
+/*
+ * Get System Time
+ */
+uint64_t smb2_get_system_time(struct smb2_context *smb2);
 
 /*
  * PREAD
@@ -1178,6 +1203,30 @@ int smb2_readlink_async(struct smb2_context *smb2, const char *path,
  * Sync readlink()
  */
 int smb2_readlink(struct smb2_context *smb2, const char *path, char *buf, uint32_t bufsiz);
+
+/*
+ * FUTIMENS
+ */
+/*
+ * Async futimes()
+ *
+ * Returns
+ *  0     : The operation was initiated. Result of the operation will be
+ *          reported through the callback function.
+ * -errno : There was an error. The callback function will not be invoked.
+ *
+ * When the callback is invoked, status indicates the result:
+ *      0 : Success. Command_data is NULL.
+ * -errno : An error occurred.
+ */
+int smb2_futimes_async(struct smb2_context *smb2, struct smb2fh *fh,
+                       struct smb2_timeval tv[2],
+                       smb2_command_cb cb, void *cb_data);
+/*
+ * Sync futimes()
+ */
+int smb2_futimes(struct smb2_context *smb2, struct smb2fh *fh,
+                 struct smb2_timeval tv[2]);
 
 /*
  * Async echo()
