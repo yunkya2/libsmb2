@@ -60,14 +60,17 @@ SAMPLES_ORG = \
 
 SAMPLES_SRC = $(subst -,,$(SAMPLES_ORG))
 
-$(SAMPLES_SRC): $(addprefix ../examples/,$(SAMPLES_ORG))
-	for f in $^; do \
-		cp $$f ./$$(basename $$f | tr -d -); \
-	done
+# Create a pattern rule for individual source files
+define COPY_SAMPLE_RULE
+$(subst -,,$(1)): ../examples/$(1)
+	cp $$< $$@
+endef
+
+$(foreach sample,$(SAMPLES_ORG),$(eval $(call COPY_SAMPLE_RULE,$(sample))))
 
 SAMPLES = $(SAMPLES_SRC:.c=.x)
 
-all: $(SAMPLES)
+all: $(LIBSMB2) $(SAMPLES)
 
 LIBSMB2 = libsmb2.a
 
@@ -148,3 +151,4 @@ clean:
 -include $(DEPS)
 
 .PHONY: all clean
+.PRECIOUS: $(OBJS)
